@@ -102,7 +102,7 @@ int main()
 			break;
 		case ButtonPress:
 			e = event.xbutton;
-			if (e.y > PADDING && e.y < PADDING + h) {
+			if (e.y > PADDING * 3 + h && e.y < PADDING * 4 + h * 2) {
 				for (int i = 0; i < LENGTH(commands); i++) {
 					if (e.x >= cmds_x[i] && e.x <= cmds_w[i] + cmds_x[i]) {
 						if (fork() == 0) {
