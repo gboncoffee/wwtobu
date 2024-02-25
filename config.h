@@ -9,10 +9,10 @@ static const char *font = "Liberation Sans:size=12";
 
 #define X 0
 #define Y 0
-#define WIDTH 205
-#define HEIGHT 35
+#define WIDTH 300
+#define HEIGHT 45
 
-#define PADDING 10
+#define PADDING 5
 
 static const char *volp[] = { "pamixer", "-i", "5", NULL };
 static const char *volm[] = { "pamixer", "-d", "5", NULL };

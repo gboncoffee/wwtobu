@@ -15,38 +15,63 @@ typedef struct {
 
 #include "config.h"
 
+Display *display;
+Window w;
+XEvent event;
+XftDraw	*xftdraw;
+XRenderColor xrcolor;
+XftColor xftcolor;
+XftFont	*xftfont = NULL;
+XGlyphInfo extents;
+int cmds_x[LENGTH(commands)] = { 0 };
+int cmds_w[LENGTH(commands)] = { 0 };
+int y;
+int h;
+XButtonEvent e;
+char *status = NULL;
+
 void handler(int _d)
 {
 	wait(NULL);
 }
 
+void update_status(void)
+{
+	XTextProperty prop;
+	if (status != NULL)
+		XFree(status);
+	status = NULL;
+	if (XGetWMName(display, DefaultRootWindow(display), &prop))
+		status = (char*) prop.value;
+}
+
+void render(void)
+{
+	XClearWindow(display, w);
+	xftdraw = XftDrawCreate(display, w, DefaultVisual(display, 0), DefaultColormap(display, 0));
+
+	if (status != NULL)
+		XftDrawStringUtf8(xftdraw, &xftcolor, xftfont, PADDING, y, status, strlen(status));
+
+	for (int i = 0; i < LENGTH(commands); i++)
+		XftDrawStringUtf8(xftdraw, &xftcolor, xftfont, cmds_x[i], y + PADDING * 2 + h, commands[i].label, commands[i].size);
+	XftDrawDestroy(xftdraw);
+}
+
 int main()
 {
-	Display *display;
-	XEvent event;
-	XftDraw	*xftdraw;
-	XRenderColor xrcolor;
-	XftColor xftcolor;
-	XftFont	*xftfont = NULL;
-	XGlyphInfo extents;
-	int cmds_x[LENGTH(commands)] = { 0 };
-	int cmds_w[LENGTH(commands)] = { 0 };
-	int y;
-	int h;
-	XButtonEvent e;
-
 	signal(SIGCHLD, handler);
 
 	display = XOpenDisplay(0);
-	Window w = XCreateSimpleWindow(display, DefaultRootWindow(display), X, Y, WIDTH, HEIGHT, 0, 0, BACKGROUND);
+	w = XCreateSimpleWindow(display, DefaultRootWindow(display), X, Y, WIDTH, HEIGHT, 0, 0, BACKGROUND);
 	XStoreName(display, w, "Window Waiting TO Be Usefull");
 	XSelectInput(display, w, ExposureMask | ButtonPressMask);
+	XSelectInput(display, DefaultRootWindow(display), PropertyChangeMask);
 	XMapWindow(display, w);
 
 	xftfont = XftFontOpenName(display, 0, font);
 	if (!xftfont)
 		return 1;
-
 
 	xrcolor.red = FG_RED;
 	xrcolor.green = FG_GREEN;
@@ -65,16 +90,15 @@ int main()
 		cmds_w[i] = extents.width - extents.x;
 	}
 
+	update_status();
+
 	for (;;) {
 		XNextEvent(display, &event);
 		switch (event.type) {
+		case PropertyNotify:
+			update_status();
 		case Expose:
-			XClearWindow(display, w);
-			xftdraw = XftDrawCreate(display, w, DefaultVisual(display, 0), DefaultColormap(display, 0));
-
-			for (int i = 0; i < LENGTH(commands); i++)
-				XftDrawStringUtf8(xftdraw, &xftcolor, xftfont, cmds_x[i], y, commands[i].label, commands[i].size);
-			XftDrawDestroy(xftdraw);
+			render();
 			break;
 		case ButtonPress:
 			e = event.xbutton;
